@@ -1,0 +1,14 @@
+{
+  "name": "le-proxy",
+  "version": "0.0.3",
+  "description": "Proxy asset requests to local dev server but proxy api requests to logentries.com",
+  "main": "app.js",
+  "author": "Peter Sutherland",
+  "license": "MIT",
+  "dependencies": {
+    "q": "^1.0.1",
+    "request": "^2.36.0",
+    "tough-cookie": "^0.12.1",
+    "yargs": "^1.2.2"
+  }
+}
