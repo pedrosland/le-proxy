@@ -12,18 +12,28 @@ var argv = require('yargs')
 		'and your data comes from logentries.com.\n' +
 		'Usage: $0 [devSessionId] [liveSessionId]')
 	.demand(2)
+    .describe('proxy-port', 'Local port to listen for proxy requests (use this in your browser)')
+    .describe('dev-address', 'Address of dev server. Use "host:port" syntax if you need to specify a port.')
+    .describe('live-address', 'Address of live server')
+    .default('proxy-port', 5050)
+    .default('dev-address', 'https://dev.logentries.net')
+    .default('live-address', 'https://logentries.com')
 	.argv;
 
 var devSessionId = argv._[0];
 var liveSessionId = argv._[1];
+
+var proxyPort = argv['proxy-port'];
+var devAddress = argv['dev-address'];
+var liveAddress = argv['live-address'];
 
 // Set up cookie jars
 var liveJar = request.jar();
 var devJar = request.jar();
 
 // Insert session IDs into the cookie jars
-devJar.setCookie(request.cookie('sessionid=' + devSessionId + '; Path=/'), 'https://dev.logentries.net');
-liveJar.setCookie(request.cookie('sessionid=' + liveSessionId + '; Path=/'), 'https://logentries.com');
+devJar.setCookie(request.cookie('sessionid=' + devSessionId + '; Path=/'), devAddress);
+liveJar.setCookie(request.cookie('sessionid=' + liveSessionId + '; Path=/'), liveAddress);
 
 // Regex to match text to replace when merging /app pages
 var appHtmlUserInfo = /\/\/ Logentries namespace[\w\W]*?Default screen/;
@@ -62,8 +72,8 @@ var server = http.createServer(function(req, res) {
  */
 function proxyAppPage(req, res){
 	q.all([
-		promiseRequest({url: 'https://dev.logentries.net/app', jar: devJar}),
-		promiseRequest({url: 'https://logentries.com' + req.url, jar: liveJar})
+		promiseRequest({url: devAddress + '/app', jar: devJar}),
+		promiseRequest({url: liveAddress + req.url, jar: liveJar})
 	]).then(function(results){
 		var dev = results[0].response;
 		var live = results[1].response;
@@ -116,7 +126,7 @@ function proxyAppPage(req, res){
 function proxyDevPage(req, res){
 	res.setHeader('X-Lep-Status', 'Dev');
 	req.pipe(request({
-		url: 'https://dev.logentries.net' + req.url,
+		url: devAddress + req.url,
 		jar: devJar
 	})).pipe(res);
 }
@@ -131,7 +141,7 @@ function proxyDevPage(req, res){
  */
 function proxyLivePage(req, res){
 	var headers = req.headers;
-	headers['referer'] = 'https://logentries.com/app/';
+	headers['referer'] = liveAddress + '/app/';
 	delete headers.host;
 	delete headers.cookie;
 
@@ -139,7 +149,7 @@ function proxyLivePage(req, res){
 
     var proxyReq = request({
         //url: 'http://localhost:5000' + req.url,
-        url: 'https://logentries.com' + req.url,
+        url: liveAddress + req.url,
         headers: headers,
         method: req.method,
         jar: liveJar
@@ -203,5 +213,8 @@ function copySetCookie(src, dest){
 	}
 }
 
-console.log("listening on port 5050");
-server.listen(5050);
+server.listen(proxyPort, function(){
+    console.log('Live: ' + liveAddress);
+    console.log('Dev: ' + devAddress);
+    console.log('Proxy listening on localhost:' + proxyPort);
+});

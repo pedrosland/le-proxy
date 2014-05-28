@@ -13,6 +13,9 @@ At the moment this is also handy since we don't have source maps.
 
 You must be logged in to your dev environment and production to use this.
 
+Also for the proxy to pass on the CSRF token, please make your first request is
+a GET request. Just requesting /app will do this for you.
+
 ```
 node app.js [devSessionId] [liveSessionId]
 ```
@@ -24,6 +27,3 @@ and `liveSessionId` is your `sessionid` cookie from production.
 
 * Perhaps we could provide an interface so that we can log in to dev and live
 through this and then this tool is able to get the session ids.
-* Allow user configurable host for dev
-* Allow user configurable host for live
-* Allow user configurable local port to bind to
